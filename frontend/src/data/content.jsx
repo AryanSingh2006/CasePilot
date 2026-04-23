@@ -59,7 +59,7 @@ export const steps = [
 
 export const useCases = [
   { label: "Students",         icon: "🎓", desc: "Understand complex case laws, dissect legal opinions, and prep for moots with AI-guided analysis." },
-  { label: "Small Businesses", icon: "🏢", desc: "Review vendor contracts, employment agreements, and compliance documents before signing." },
+  { label: "Small Businesses", icon: "🏢", desc: "Review vendor contracts, employment agreements, and compliance documents." },
   { label: "Freelancers",      icon: "💼", desc: "Protect your work with AI-reviewed service agreements, NDAs, and IP clauses tailored to your field." },
   { label: "Legal Researchers",icon: "🔍", desc: "Accelerate research with AI-powered precedent mapping and comparative statutory analysis." }
 ];
@@ -71,8 +71,8 @@ export const trustItems = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
       </svg>
     ),
-    title: "End-to-End Encryption",
-    desc: "All documents are encrypted in transit and at rest using AES-256. Your data is mathematically protected at every layer."
+    title: "Secure API Communication",
+    desc: "All requests to the AI model are transmitted over HTTPS, ensuring encrypted communication between users and the AI service."
   },
   {
     icon: (
@@ -80,8 +80,8 @@ export const trustItems = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
       </svg>
     ),
-    title: "Zero Data Retention",
-    desc: "We do not store, train on, or share your documents. Each session is ephemeral and purged immediately upon completion."
+    title: "No Local Data Storage",
+    desc: "We do not store uploaded documents on our servers. Files are processed temporarily for analysis and discarded after completion."
   },
   {
     icon: (
@@ -89,7 +89,9 @@ export const trustItems = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />
       </svg>
     ),
-    title: "SOC 2 Compliant",
-    desc: "Independently audited for security, availability, and confidentiality. Our infrastructure meets the highest enterprise-grade standards."
+    title: "AI-Assisted, Not Legal Advice",
+    desc: "CasePilot provides AI-generated insights for educational and research purposes. It does not replace a licensed attorney."
   }
 ];
+
+

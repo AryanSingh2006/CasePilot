@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { FadeIn } from "./FadeIn";
 
 export function FinalCTA() {
+  const navigate = useNavigate();
   return (
     <section className="final-cta" style={{ padding: "120px 40px" }}>
       <div className="grid-lines" />
@@ -21,7 +23,7 @@ export function FinalCTA() {
             Join thousands of professionals who trust AI Legal Advisor to decode complexity and deliver clarity.
           </p>
           <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="btn-primary" style={{ padding: "16px 40px", fontSize: "0.95rem" }}>Start Free — No Credit Card</button>
+            <button className="btn-primary" onClick={() => navigate("/auth")} style={{ padding: "16px 40px", fontSize: "0.95rem" }}>Start Free — No Credit Card</button>
             <button className="btn-ghost" style={{ padding: "16px 40px", fontSize: "0.95rem" }}>Schedule a Demo</button>
           </div>
           <p style={{ color: "#4a4d5c", fontSize: "0.78rem", marginTop: 28, letterSpacing: "0.04em" }}>

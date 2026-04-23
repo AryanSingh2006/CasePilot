@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 export function Hero() {
+  const navigate = useNavigate();
   return (
     <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", overflow: "hidden", paddingTop: 68 }}>
       <div className="grid-lines" />
@@ -43,8 +46,8 @@ export function Hero() {
           </p>
 
           <div className="hero-btns" style={{ display: "flex", gap: 16, opacity: 0, animation: "fadeUp 0.8s ease 0.6s forwards" }}>
-            <button className="btn-primary">Start Free Analysis</button>
-            <button className="btn-ghost">See How It Works</button>
+            <button className="btn-primary" onClick={() => navigate("/auth")}>Get Started</button>
+            <button className="btn-ghost" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>See How It Works</button>
           </div>
 
           <div style={{ display: "flex", gap: 40, marginTop: 56, opacity: 0, animation: "fadeUp 0.8s ease 0.8s forwards" }}>

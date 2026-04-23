@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { NAV_LINKS } from "../data/content";
 
 export function Navbar() {
@@ -26,20 +27,20 @@ export function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
             </svg>
           </div>
-          <span className="serif" style={{ fontSize: "1.1rem", color: "#e8e6e1", letterSpacing: "-0.01em" }}>AI Legal<span style={{ color: "#c9a84c" }}>.</span></span>
+          <span className="serif" style={{ fontSize: "1.1rem", color: "#e8e6e1", letterSpacing: "-0.01em" }}>CasePilot<span style={{ color: "#c9a84c" }}></span></span>
         </div>
 
         <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
           {NAV_LINKS.map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(" ", "-")}`} className="nav-link" style={{ display: "none" }}
+            <a key={l} href={`#${l.toLowerCase().replaceAll(" ", "-")}`} className="nav-link" style={{ display: "none" }}
               onMouseEnter={e => e.target.style.display = "inline"}>{l}</a>
           ))}
           <div style={{ display: "flex", gap: 32 }}>
             {NAV_LINKS.map(l => (
-              <a key={l} href={`#${l.toLowerCase().replace(" ", "-")}`} className="nav-link">{l}</a>
+              <a key={l} href={`#${l.toLowerCase().replaceAll(" ", "-")}`} className="nav-link">{l}</a>
             ))}
           </div>
-          <button className="btn-primary" style={{ padding: "10px 22px", fontSize: "0.8rem" }}>Get Early Access</button>
+          <Link to="/auth" className="btn-primary" style={{ padding: "10px 22px", fontSize: "0.8rem", textDecoration: "none", display: "inline-block" }}>Get Started</Link>
         </div>
       </div>
     </nav>
