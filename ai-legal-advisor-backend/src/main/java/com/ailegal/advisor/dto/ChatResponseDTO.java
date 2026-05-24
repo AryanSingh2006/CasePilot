@@ -21,8 +21,15 @@ public class ChatResponseDTO {
     private String disclaimer;
     private LocalDateTime timestamp;
 
+    /** True when the AI response was grounded in an uploaded document's content. */
+    private boolean documentGrounded;
+
+    /** Display name of the document used for grounding (if documentGrounded == true). */
+    private String documentName;
+
     @Builder.Default
     private String disclaimerText =
         "This response is for informational purposes only and does not constitute legal advice. " +
         "Please consult a licensed attorney for guidance specific to your situation.";
 }
+

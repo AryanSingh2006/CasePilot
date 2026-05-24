@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../hooks/useToast";
 import { ToastContainer } from "../components/ToastContainer";
+import { DocumentUploadPanel } from "../components/DocumentUploadPanel";
 import { askQuestion } from "../services/chatApi";
 
 function formatAnswer(text) {
@@ -18,6 +19,11 @@ export function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState(initialCategory);
   const [sessionId, setSessionId] = useState(null);
+
+  // Document upload state
+  const [activeDocument, setActiveDocument] = useState(null); // { documentId, fileName, ... }
+  const [docPanelOpen, setDocPanelOpen] = useState(false);
+
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const { toasts, toast, removeToast } = useToast();
@@ -26,10 +32,22 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Reset session when category changes
+  // Reset session and document when category is cleared
   const clearChat = () => {
     setMessages([]);
     setSessionId(null);
+    setActiveDocument(null);
+    setDocPanelOpen(false);
+  };
+
+  // Called by DocumentUploadPanel when a file is successfully processed
+  const handleDocumentReady = (doc) => {
+    setActiveDocument(doc);
+  };
+
+  // Called when user removes the document
+  const handleDocumentRemoved = () => {
+    setActiveDocument(null);
   };
 
   const handleSend = async () => {
@@ -46,6 +64,7 @@ export function ChatPage() {
         query: q,
         categoryId: category?.id || null,
         sessionId,
+        documentId: activeDocument?.documentId || null, // attach doc if present
       });
       setSessionId(data.sessionId);
       const aiMsg = {
@@ -54,6 +73,8 @@ export function ChatPage() {
         text: data.answer,
         categoryName: data.categoryName,
         demoMode: data.demoMode,
+        documentGrounded: data.documentGrounded,
+        documentName: data.documentName,
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
@@ -117,12 +138,23 @@ export function ChatPage() {
       }}>
         <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 24px" }}>
           {messages.length === 0 && (
-            <EmptyState category={category} onSuggest={q => { setQuery(q); textareaRef.current?.focus(); }} />
+            <EmptyState
+              category={category}
+              activeDocument={activeDocument}
+              onSuggest={q => { setQuery(q); textareaRef.current?.focus(); }}
+            />
           )}
           {messages.map(msg => (
             msg.role === "user"
               ? <UserBubble key={msg.id} text={msg.text} />
-              : <AIBubble key={msg.id} text={msg.text} demoMode={msg.demoMode} categoryName={msg.categoryName} />
+              : <AIBubble
+                  key={msg.id}
+                  text={msg.text}
+                  demoMode={msg.demoMode}
+                  categoryName={msg.categoryName}
+                  documentGrounded={msg.documentGrounded}
+                  documentName={msg.documentName}
+                />
           ))}
           {loading && <TypingDots />}
           <div ref={bottomRef} />
@@ -134,9 +166,48 @@ export function ChatPage() {
         flexShrink: 0, zIndex: 10,
         background: "linear-gradient(to top, #07080f 85%, transparent)",
         borderTop: "1px solid rgba(201,168,76,0.07)",
-        padding: "16px 24px 20px",
+        padding: "12px 24px 20px",
       }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
+
+          {/* ── Document upload panel (collapsible) ── */}
+          {docPanelOpen && (
+            <DocumentUploadPanel
+              onDocumentReady={handleDocumentReady}
+              onDocumentRemoved={handleDocumentRemoved}
+            />
+          )}
+
+          {/* ── Active document badge (shown when panel is collapsed but doc is attached) ── */}
+          {activeDocument && !docPanelOpen && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "rgba(201,168,76,0.07)",
+              border: "1px solid rgba(201,168,76,0.2)",
+              borderRadius: 8, padding: "6px 12px", marginBottom: 8,
+              fontSize: "0.78rem",
+            }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#c9a84c" }}>
+                <span>📄</span>
+                <span style={{
+                  overflow: "hidden", textOverflow: "ellipsis",
+                  whiteSpace: "nowrap", maxWidth: 280,
+                }}>
+                  {activeDocument.fileName}
+                </span>
+                <span style={{ color: "#4a4d5c" }}>attached</span>
+              </span>
+              <button
+                onClick={handleDocumentRemoved}
+                title="Remove document"
+                style={{ background: "none", border: "none", color: "#7a7d8c", cursor: "pointer", padding: "0 4px" }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* ── Text input row ── */}
           <div style={{
             display: "flex", gap: 10, alignItems: "flex-end",
             background: "rgba(255,255,255,0.025)",
@@ -147,6 +218,28 @@ export function ChatPage() {
             onFocusCapture={e => e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)"}
             onBlurCapture={e => e.currentTarget.style.borderColor = "rgba(201,168,76,0.18)"}
           >
+            {/* 📎 Toggle document panel */}
+            <button
+              id="doc-attach-btn"
+              onClick={() => setDocPanelOpen(p => !p)}
+              title={docPanelOpen ? "Hide document panel" : "Attach a legal document (PDF/DOC/DOCX)"}
+              style={{
+                width: 34, height: 34, borderRadius: 7, flexShrink: 0,
+                background: docPanelOpen || activeDocument
+                  ? "rgba(201,168,76,0.18)"
+                  : "rgba(255,255,255,0.04)",
+                border: `1px solid ${docPanelOpen || activeDocument
+                  ? "rgba(201,168,76,0.4)"
+                  : "rgba(201,168,76,0.12)"}`,
+                cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.2s",
+                fontSize: "0.85rem",
+              }}
+            >
+              📎
+            </button>
+
             <textarea
               ref={textareaRef}
               id="chat-input"
@@ -158,7 +251,13 @@ export function ChatPage() {
                 e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
               }}
               onKeyDown={handleKey}
-              placeholder={category ? `Ask about ${category.name}…` : "Ask any legal question…"}
+              placeholder={
+                activeDocument
+                  ? `Ask a question about "${activeDocument.fileName}"…`
+                  : category
+                    ? `Ask about ${category.name}…`
+                    : "Ask any legal question…"
+              }
               style={{
                 flex: 1, background: "none", border: "none", outline: "none",
                 color: "#e8e6e1", fontFamily: "'DM Sans', sans-serif",
@@ -167,6 +266,7 @@ export function ChatPage() {
                 scrollbarWidth: "none",
               }}
             />
+
             <button
               id="chat-send-btn"
               onClick={handleSend}
@@ -182,13 +282,20 @@ export function ChatPage() {
               }}
             >
               {loading
-                ? <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(201,168,76,0.3)", borderTopColor: "#c9a84c", animation: "spin 0.8s linear infinite" }} />
+                ? <div style={{
+                    width: 14, height: 14, borderRadius: "50%",
+                    border: "2px solid rgba(201,168,76,0.3)",
+                    borderTopColor: "#c9a84c",
+                    animation: "spin 0.8s linear infinite",
+                  }} />
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#07080f" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                   </svg>
               }
             </button>
           </div>
+
           <p style={{ textAlign: "center", fontSize: "0.7rem", color: "#4a4d5c", marginTop: 8 }}>
             AI responses are informational only · Not legal advice · Consult a licensed attorney
           </p>
@@ -199,6 +306,10 @@ export function ChatPage() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
 function UserBubble({ text }) {
   return (
@@ -215,27 +326,55 @@ function UserBubble({ text }) {
   );
 }
 
-function AIBubble({ text, demoMode, categoryName }) {
+function AIBubble({ text, demoMode, categoryName, documentGrounded, documentName }) {
   const lines = formatAnswer(text);
   return (
     <div style={{ display: "flex", gap: 12, marginBottom: 24, animation: "msgIn 0.3s ease" }}>
       {/* Avatar */}
-      <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, marginTop: 2, background: "linear-gradient(135deg, #c9a84c, #e8c96f)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: "50%", flexShrink: 0, marginTop: 2,
+        background: "linear-gradient(135deg, #c9a84c, #e8c96f)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#07080f" strokeWidth="2.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+          <path strokeLinecap="round" strokeLinejoin="round"
+            d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
         </svg>
       </div>
+
       <div style={{ flex: 1 }}>
+        {/* Demo mode banner */}
         {demoMode && (
-          <div style={{ fontSize: "0.74rem", color: "#d4a853", background: "rgba(212,168,83,0.08)", border: "1px solid rgba(212,168,83,0.2)", borderRadius: 6, padding: "4px 10px", display: "inline-block", marginBottom: 8 }}>
+          <div style={{
+            fontSize: "0.74rem", color: "#d4a853",
+            background: "rgba(212,168,83,0.08)", border: "1px solid rgba(212,168,83,0.2)",
+            borderRadius: 6, padding: "4px 10px", display: "inline-block", marginBottom: 8,
+          }}>
             ⚠ Demo Mode — Add GEMINI_API_KEY for real responses
           </div>
         )}
-        {categoryName && (
+
+        {/* Document-grounded badge */}
+        {documentGrounded && documentName && (
+          <div style={{
+            fontSize: "0.74rem", color: "#c9a84c",
+            background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)",
+            borderRadius: 6, padding: "4px 10px",
+            display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 8,
+          }}>
+            <span>📄</span>
+            <span>Grounded in: <strong>{documentName}</strong></span>
+          </div>
+        )}
+
+        {/* Category label (only when not doc-grounded) */}
+        {categoryName && !documentGrounded && (
           <div style={{ fontSize: "0.74rem", color: "#7a7d8c", marginBottom: 6 }}>
             📂 {categoryName}
           </div>
         )}
+
+        {/* Answer body */}
         <div style={{
           background: "rgba(255,255,255,0.025)", border: "1px solid rgba(201,168,76,0.1)",
           borderRadius: "2px 14px 14px 14px", padding: "14px 16px",
@@ -243,10 +382,12 @@ function AIBubble({ text, demoMode, categoryName }) {
         }}>
           {lines.map((line, i) => {
             if (line.startsWith("•") || line.startsWith("-") || line.startsWith("*")) {
-              return <div key={i} style={{ paddingLeft: 14, position: "relative", marginBottom: 4 }}>
-                <span style={{ position: "absolute", left: 0, color: "#c9a84c" }}>•</span>
-                {line.replace(/^[•\-*]\s*/, "")}
-              </div>;
+              return (
+                <div key={i} style={{ paddingLeft: 14, position: "relative", marginBottom: 4 }}>
+                  <span style={{ position: "absolute", left: 0, color: "#c9a84c" }}>•</span>
+                  {line.replace(/^[•\-*]\s*/, "")}
+                </div>
+              );
             }
             if (line.match(/^\d+\./)) {
               return <div key={i} style={{ marginBottom: 4 }}>{line}</div>;
@@ -262,10 +403,18 @@ function AIBubble({ text, demoMode, categoryName }) {
 function TypingDots() {
   return (
     <div style={{ display: "flex", gap: 12, marginBottom: 24, animation: "msgIn 0.3s ease" }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "rgba(201,168,76,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+        background: "rgba(201,168,76,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
         <span style={{ fontSize: "0.7rem", color: "#c9a84c" }}>⚖</span>
       </div>
-      <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(201,168,76,0.1)", borderRadius: "2px 14px 14px 14px", padding: "14px 20px", display: "flex", gap: 6, alignItems: "center" }}>
+      <div style={{
+        background: "rgba(255,255,255,0.025)", border: "1px solid rgba(201,168,76,0.1)",
+        borderRadius: "2px 14px 14px 14px", padding: "14px 20px",
+        display: "flex", gap: 6, alignItems: "center",
+      }}>
         {[0, 0.15, 0.3].map((delay, i) => (
           <div key={i} style={{
             width: 7, height: 7, borderRadius: "50%", background: "#c9a84c",
@@ -284,29 +433,39 @@ const SUGGESTIONS = [
   "How does child custody work after divorce?",
 ];
 
-function EmptyState({ category, onSuggest }) {
+function EmptyState({ category, activeDocument, onSuggest }) {
   return (
     <div style={{ textAlign: "center", padding: "40px 0 30px", animation: "fadeUp 0.6s ease" }}>
-      <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>{category?.icon || "⚖️"}</div>
-      <h2 className="serif" style={{ fontSize: "1.4rem", color: "#e8e6e1", marginBottom: 8 }}>
-        {category ? `${category.name} Advisor` : "AI Legal Advisor"}
-      </h2>
-      <p style={{ color: "#7a7d8c", fontSize: "0.85rem", maxWidth: 400, margin: "0 auto 28px" }}>
-        {category ? category.description : "Ask any legal question and I'll provide clear, actionable guidance."}
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-        {SUGGESTIONS.map(s => (
-          <button key={s} onClick={() => onSuggest(s)} style={{
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(201,168,76,0.14)",
-            borderRadius: 20, padding: "8px 16px", fontSize: "0.8rem",
-            color: "#9a9dac", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            transition: "all 0.2s",
-          }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.35)"; e.currentTarget.style.color = "#c9a84c"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.14)"; e.currentTarget.style.color = "#9a9dac"; }}
-          >{s}</button>
-        ))}
+      <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>
+        {activeDocument ? "📄" : category?.icon || "⚖️"}
       </div>
+      <h2 className="serif" style={{ fontSize: "1.4rem", color: "#e8e6e1", marginBottom: 8 }}>
+        {activeDocument ? "Document Ready" : category ? `${category.name} Advisor` : "AI Legal Advisor"}
+      </h2>
+      <p style={{ color: "#7a7d8c", fontSize: "0.85rem", maxWidth: 420, margin: "0 auto 28px" }}>
+        {activeDocument
+          ? <>Ask any question about{" "}
+              <strong style={{ color: "#c9a84c" }}>{activeDocument.fileName}</strong>
+              {" "}and the AI will answer based on its content.</>
+          : category
+            ? category.description
+            : "Ask any legal question and I'll provide clear, actionable guidance."}
+      </p>
+      {!activeDocument && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+          {SUGGESTIONS.map(s => (
+            <button key={s} onClick={() => onSuggest(s)} style={{
+              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(201,168,76,0.14)",
+              borderRadius: 20, padding: "8px 16px", fontSize: "0.8rem",
+              color: "#9a9dac", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+              transition: "all 0.2s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.35)"; e.currentTarget.style.color = "#c9a84c"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.14)"; e.currentTarget.style.color = "#9a9dac"; }}
+            >{s}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

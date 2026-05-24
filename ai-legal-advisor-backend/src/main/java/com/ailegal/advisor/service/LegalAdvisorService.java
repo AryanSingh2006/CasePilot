@@ -13,6 +13,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,6 +28,10 @@ public class LegalAdvisorService {
     private final ChatSessionRepository chatSessionRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+
+    // Document upload support
+    private final DocumentStore documentStore;
+    private final DocumentContextService documentContextService;
 
     private static final String DEMO_RESPONSE =
         "This is a sample AI-generated legal insight based on your query.\n\n" +
@@ -54,12 +59,48 @@ public class LegalAdvisorService {
         // Generate AI response
         String answer;
         boolean isDemoMode = geminiConfig.isDemoMode();
+        boolean documentGrounded = false;
+        String documentName = null;
 
-        if (isDemoMode) {
-            log.warn("DEMO MODE — GEMINI_API_KEY not set");
-            answer = DEMO_RESPONSE;
-        } else {
-            answer = callGeminiWithCategory(request.getQuery(), category);
+        // ── Document-grounded path ──────────────────────────────────────────────
+        // If the client supplied a documentId, attempt to ground the prompt in
+        // the uploaded document's content. Falls back to standard legal prompt
+        // if the document has expired or was already removed.
+        if (request.getDocumentId() != null && !request.getDocumentId().isBlank()) {
+            Optional<DocumentStore.StoredDocument> storedDoc =
+                    documentStore.find(request.getDocumentId());
+
+            if (storedDoc.isPresent()) {
+                log.info("Using document-grounded mode for documentId={}", request.getDocumentId());
+                documentGrounded = true;
+                documentName = storedDoc.get().getFileName();
+
+                if (isDemoMode) {
+                    log.warn("DEMO MODE — GEMINI_API_KEY not set (document-grounded)");
+                    answer = DEMO_RESPONSE;
+                } else {
+                    String prompt = documentContextService.buildDocumentGroundedPrompt(
+                            request.getQuery(),
+                            storedDoc.get().getExtractedText(),
+                            storedDoc.get().getFileName(),
+                            category);
+                    answer = geminiService.generateResponse(prompt);
+                }
+            } else {
+                // Document not found (expired / removed) — fall through to standard mode
+                log.warn("Document {} not found in store; falling back to standard legal prompt",
+                        request.getDocumentId());
+                answer = isDemoMode ? DEMO_RESPONSE : callGeminiWithCategory(request.getQuery(), category);
+            }
+        }
+        // ── Standard legal-advice path ──────────────────────────────────────────
+        else {
+            if (isDemoMode) {
+                log.warn("DEMO MODE — GEMINI_API_KEY not set");
+                answer = DEMO_RESPONSE;
+            } else {
+                answer = callGeminiWithCategory(request.getQuery(), category);
+            }
         }
 
         // Persist query
@@ -89,6 +130,8 @@ public class LegalAdvisorService {
                 .answer(answer)
                 .categoryName(category != null ? category.getName() : null)
                 .demoMode(isDemoMode)
+                .documentGrounded(documentGrounded)
+                .documentName(documentName)
                 .timestamp(saved.getCreatedAt())
                 .build();
     }

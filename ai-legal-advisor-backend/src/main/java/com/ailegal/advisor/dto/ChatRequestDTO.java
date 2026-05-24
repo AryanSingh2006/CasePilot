@@ -15,4 +15,12 @@ public class ChatRequestDTO {
 
     /** Optional: existing sessionId to continue a conversation */
     private Long sessionId;
+
+    /**
+     * Optional: UUID of a previously uploaded document (from POST /api/documents/upload).
+     * When present, the AI answer will be grounded in the document's extracted text
+     * rather than using only its general legal knowledge.
+     */
+    private String documentId;
 }
+
