@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+
+    container_name: casepilot-postgres
+
+    environment:
+      POSTGRES_DB: casepilot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - casepilot-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  casepilot-postgres-data:
